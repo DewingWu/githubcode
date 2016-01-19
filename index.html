@@ -1,0 +1,699 @@
+﻿<!DOCTYPE html>
+<!--HTML5 doctype-->
+<html>
+<head>
+<title>蜜旅</title>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<link rel="stylesheet" type="text/css" href="css/icons.css" />
+
+<!--
+<link rel="stylesheet" type="text/css" href="css/af.ui.css" title="default" />
+-->
+<link rel="stylesheet" type="text/css" href="css/main.css"  />
+<link rel="stylesheet" type="text/css" href="css/appframework.css"  />
+<link rel="stylesheet" type="text/css" href="css/lists.css"  />
+<link rel="stylesheet" type="text/css" href="css/forms.css"  />
+<link rel="stylesheet" type="text/css" href="css/buttons.css"  />
+<link rel="stylesheet" type="text/css" href="css/badges.css"  />
+<link rel="stylesheet" type="text/css" href="css/grid.css"  />
+<link rel="stylesheet" type="text/css" href="css/myandroid.css"  />
+<link rel="stylesheet" type="text/css" href="css/ico-style.css"  />
+<script type="text/javascript" charset="utf-8" src="./js/jquery2.1.js"></script>
+<script type="text/javascript" charset="utf-8" src="./js/jq.appframework.js"></script>
+<script type="text/javascript" charset="utf-8" src="./js/jquery.md5.js"></script>
+<script type="text/javascript" charset="utf-8" src="./plugins/af.actionsheet.js"></script>
+<script type="text/javascript" charset="utf-8" src="./plugins/af.css3animate.js"></script>
+<script type="text/javascript" charset="utf-8" src="./plugins/af.passwordBox.js"></script>
+<script type="text/javascript" charset="utf-8" src="./plugins/af.scroller.js"></script>
+<!--<script type="text/javascript" charset="utf-8" src="./plugins/af.selectBox.js"></script>-->
+<script type="text/javascript" charset="utf-8" src="./plugins/af.touchEvents.js"></script>
+<script type="text/javascript" charset="utf-8" src="./plugins/af.touchLayer.js"></script>
+<script type="text/javascript" charset="utf-8" src="./plugins/af.popup.js"></script>
+
+<script type="text/javascript" charset="utf-8" src="./ui/appframework.ui.js"></script>
+
+<!-- 时间选择插件 -->
+
+<script src="./js/Base64-80.js"></script>
+
+<script src="cordova.js" type="text/javascript"></script>
+
+
+<!-- include af.desktopBrowsers.js on desktop browsers only -->
+<script>
+//token=get_token(122,"123fdsf1r3fsafdasfawe");
+//console.log(token);
+
+function loadedPanel(what) {
+    $('#header').height(42);
+    //We are going to set the badge as the number of li elements inside the target
+    //$.ui.updateBadge("#aflink", $("#af").find("li").length);
+}
+
+function setgourl(e){
+    var info=vhost+'/api/getjosn.php?a=showinfodata&code='+$(e).attr("code")+'&callback=?';
+
+    if (window.localStorage) {
+        localStorage.setItem("go_url", info);
+    } else {
+        Cookie.write("go_url", info);
+    }
+
+}
+
+function unloadedPanel(what) {
+    console.log("unloaded " + what.id);
+}
+
+if (!((window.DocumentTouch && document instanceof DocumentTouch) || 'ontouchstart' in window)) {
+    var script = document.createElement("script");
+    script.src = "plugins/af.desktopBrowsers.js";
+    var tag = $("head").append(script);
+    //$.os.desktop=true;
+}
+
+function load_login_panel(what){
+    $.ui.toggleHeaderMenu();
+    $.ui.toggleNavMenu();
+}
+function load_reg_panel(what){
+    $(".header").css("background","none");
+    $.ui.toggleNavMenu();
+}
+var db = window.openDatabase("ML_DB","1.0","ML_DB",200000,function(){});
+initDB(db);
+if(!db)
+    alert("Failed to connect to database.");
+var name="";
+var uid=0;
+var password="";
+var logined=0;
+
+var check_username=0;
+var check_uname=0;
+var check_password=0;
+var check_demo_date=0;
+
+db.transaction(function(tx){
+    var sql="SELECT * FROM tUser";
+    tx.executeSql(sql,[],function(tx,resultSet){
+        var rows = resultSet.rows;
+        var timestamp = Date.parse(new Date());
+        for(var i=0,len=rows.length;i<len;i++){
+            logined=rows.item(i).logined;
+            name=rows.item(i).name;
+            uid=rows.item(i).uid;
+//						 $("#user_photo").attr("src",vhost+"/userimg/"+uid+"/small.jpg?id="+timestamp);
+            $("#name").attr("value",name);
+            $("#content").show();
+        }
+        if(logined==0){
+            $("#content").show();
+            $.query("#afui #splashscreen").remove();
+            setTimeout(function(){$.ui.loadContent("#login", false, false, "none");},2000);
+
+        }
+        else{
+            window.location="main.html";
+            $.query("#afui #splashscreen").remove();
+            return false;
+        }
+    });
+});
+
+function check_login(){
+    var name=$("#name").val();
+    var password=$.md5($.md5($("#password").val()+yan));
+    console.log(reg_password);
+    $.jsonP({
+        url: vhost+'/api/getjosn.php?a=login&name='+encodeURIComponent(name)+'&password='+password+'&callback=?',
+        success: function(data) {
+            var rel=data.result;
+            for (var i = 0; i < rel.length; i++) {
+                var message = rel[i].message;
+                var uid = rel[i].uid;
+                var username=rel[i].username;
+                var content=rel[i].content;
+                var sex=rel[i].sex;
+                var level=rel[i].level;
+                var tel=rel[i].tel;
+                var pic=rel[i].pic;
+                var sql="";
+                console.log(data);
+                if(message=="1")
+                {
+
+                    $("#msg").html("登录成功,请稍后...");
+                    db.transaction(function(tx){
+                        tx.executeSql("delete FROM tUser;",[],function(){
+                            $("#msg").html("登录成功(1)");
+                            db.transaction(function(tx){
+                                tx.executeSql("INSERT INTO tUser(uid,name,password,logined,level) VALUES(?,?,?,?,?);",[uid,name,password,1,level],function(){
+                                    $("#msg").html("登录成功(2)");
+                                },function(tx,err){console.log(err);});},function(errormsg){console.log(errormsg);});
+
+                        },function(tx,err){alert(err);console.log(tx);console.log(err);});
+
+                        tx.executeSql("delete FROM tUser_info;",[],function(){
+                            $("#msg").html("登录成功(3)");
+                            db.transaction(function(tx){
+                                tx.executeSql("INSERT INTO tUser_info(uid,username,content,sex,level,tel,pic) VALUES(?,?,?,?,?,?,?);",[uid,username,content,sex,level,tel,pic],function(){
+
+                                    db.transaction(function(tx){
+                                        sql="SELECT * FROM tUser WHERE logined=1";
+                                        tx.executeSql(sql,[],function(tx,resultSet){
+                                            $("#msg").html("登录成功(4)");
+                                            var rows = resultSet.rows;
+                                            var str="";
+                                            for(var i=0,len=rows.length;i<len;i++){
+                                                window.location="main.html";
+                                            }
+                                        });
+                                    });
+
+
+                                },function(tx,err){console.log(err);});},function(errormsg){console.log(errormsg); });
+
+
+                        },function(tx,err){console.log(tx);console.log(err);});});
+
+
+                }
+                else if(message=="0"){
+                    $("#msg").html("用户名或密码错误！");
+                    $("#password").attr("value","");
+                }
+            }
+        }
+    });
+}
+
+var $t=0;
+function get_yzcode(e){
+    //$("html").html(vhost+'/api/getjosn.php?a=get_yzcode&tel='+$("#reg_tel").val()+'&&callback=?');
+    if($t==0){
+        $t=60;
+        $.jsonP({
+            url: vhost+'/api/getjosn.php?a=get_yzcode&tel='+$("#reg_tel").val()+'&callback=?',
+            success: function(data) {
+                var rel=data.result;
+                //alert(rel[0].message);
+                if(rel[0].message=="00000"){
+                    $(e).html("<span id='recount'>"+$t+"</span>秒后重发");
+                    recount(e);
+                }else if(rel[0].message=="00104"){
+                    alert("此号码同一天收取信息过多。");
+                }else if(rel[0].message=="1001"){
+                    alert("此号码已经被注册。");
+                }
+            }
+        });
+    }
+}
+
+function recount(e){
+    $t=60;
+    var objid=$("#recount");
+    setInterval(function(){
+        $t=$t-1;
+        if($t==0){
+            $(e).html("获取验证码");
+            return false;
+        }
+        objid.text($t);
+    },1000);
+}
+
+function check_reg(){
+
+    var username = "";
+    var name = $("#reg_tel").val();
+    var password = $("#reg_password").val();
+    var password2 = $("#reg_password2").val();
+    var demo_date = '';
+    var level= 90;
+    var yzcode=$("#yzcode").val();
+    var sex= 2;
+    console.log($.md5($.md5(password+yan)));
+    if(password==password2){
+
+        $.jsonP({
+            url: vhost+'/api/getjosn.php?a=reg&name='+encodeURIComponent(name)+'&username='+encodeURIComponent(username)+'&password='+$.md5($.md5(password+yan))+'&sex=2&brithday='+demo_date+'&level='+level+'&yzcode='+yzcode+'&adr0=&hospital=&uuc=&postf=&callback=?',
+            success: function(data) {
+                var rel=data.result;
+                for (var i = 0; i < rel.length; i++) {
+                    var message = rel[i].message;
+                    var uid = rel[i].uid;
+                    var content=rel[i].content;
+
+                    if(message=="1")
+                    {
+                        $("#reg_msg").html("登录成功，请稍后。。。");
+
+                        db.transaction(function(tx){
+
+                            var sql="delete FROM tUser";
+                            tx.executeSql(sql,[],function(){
+
+
+                                db.transaction(function(tx){
+                                    tx.executeSql("INSERT INTO tUser(uid,name,password,logined) VALUES(?,?,?,?);",[uid,name,$.md5($.md5(password+yan)),1],function(){},function(tx,err){console.log(err);});},function(errormsg){console.log(errormsg);});
+
+
+                            },function(tx,err){console.log(tx);console.log(err);});
+
+                            var sql="delete FROM tUser_info";
+                            tx.executeSql(sql,[],function(){
+
+
+                                db.transaction(function(tx){
+                                    tx.executeSql("INSERT INTO tUser_info(uid,username,content,sex,level,tel,pic) VALUES(?,?,?,?,?,?,?);",[uid,username,content,sex,level,'',''],function(){
+
+                                        db.transaction(function(tx){
+                                            var sql="SELECT * FROM tUser WHERE logined=1";
+                                            tx.executeSql(sql,[],function(tx,resultSet){
+                                                var rows = resultSet.rows;
+                                                var str="";
+                                                for(var i=0,len=rows.length;i<len;i++){
+                                                    window.location="main.html";
+                                                }
+                                            });
+                                        });
+
+
+                                    },function(tx,err){console.log(err);});},function(errormsg){console.log(errormsg);});
+
+
+                            },function(tx,err){console.log(tx);console.log(err);});});
+
+                    }else if(message=="0"){
+                        $("#reg_msg").html("用户名或密码错误！");
+                        //$("#password").attr("value","");
+                    }else if(message=="2"){
+                        $("#reg_msg").html("验证码错误！");
+                    }
+                }
+            }
+        });
+    }else{
+        $("#reg_msg").html("密码前后不一致！");
+    }
+
+}
+
+
+/* This function runs once the page is loaded, but intel.xdk is not yet active */
+//$.ui.animateHeaders=false;
+
+
+
+$.ui.ready(function(){
+    $("#afui").get(0).className='myandroid';
+});
+
+
+var webRoot = "./";
+// $.os.android=true;
+//$.ui.autoLaunch = false;
+$.ui.openLinksNewTab = false;
+$.ui.splitview=false;
+
+
+$(document).ready(function(){
+    // $.ui.launch();
+
+});
+/* This code is used to run as soon as intel.xdk activates */
+var onDeviceReady = function () {
+    intel.xdk.device.setRotateOrientation("portrait");
+    intel.xdk.device.setAutoRotate(false);
+    webRoot = intel.xdk.webRoot + "";
+    //hide splash screen
+    intel.xdk.device.hideSplashScreen();
+    $.ui.blockPageScroll(); //block the page from scrolling at the header/footer
+};
+document.addEventListener("intel.xdk.device.ready", onDeviceReady, false);
+
+function showHide(obj, objToHide) {
+    var el = $("#" + objToHide)[0];
+
+    if (obj.className == "expanded") {
+        obj.className = "collapsed";
+    } else {
+        obj.className = "expanded";
+    }
+    $(el).toggle();
+}
+//时间选择插件
+$(function () {
+    $("#uname").on('input',function(){
+        var val=$(this).val();
+        console.log("uname:"+val);
+        if(val.length>2 && val.length<18){
+            $.jsonP({
+                url: vhost+'/api/getjosn.php?a=check_uname&uname='+encodeURIComponent(val)+'&callback=?',
+                success: function(data) {
+
+                    var rel=data.result;
+                    for (var i = 0; i < rel.length; i++) {
+                        if(rel[i].message=="1"){
+                            $("#uname_right").show();
+                            check_uname=1;
+                        }else{
+                            $("#uname_right").hide();
+                            check_uname=0;
+                        }
+                    }
+                },error:function(XHR, textStatus, errorThrown){}
+            });
+        }
+        else{
+            $("#uname_right").hide();
+            check_uname=0;
+        }
+
+    })
+    $("#username").on('input',function(){
+        var val=$(this).val();
+        if(checkfrom("username",val)){
+            $("#username_right").show();
+            check_username=1;
+        }else{
+            $("#username_right").hide();
+            check_username=0;
+        }
+    })
+    $("#reg_password").on('input',function(){
+        var val=$(this).val();
+        if(checkfrom("reg_password",val)){
+            $("#password_right").show();
+            check_password=1;
+        }else{
+            $("#password_right").hide();
+            check_password=0;
+        }
+    })
+    $("#demo_date").on('change',function(){
+        var val=$(this).val();
+        if(checkfrom("demo_date",val)){
+            $("#demo_date_right").show();
+            check_demo_date=1;
+        }else{
+            $("#demo_date_right").hide();
+            check_demo_date=0;
+        }
+    })
+
+    function checkfrom(key,val){
+        if(key=="username"){
+            console.log("username:"+val);
+            if(val.length>2 && val.length<18){
+                return true;
+            }
+            else{
+                return false;
+            }
+
+        }else if(key=="reg_password"){
+
+            console.log("password:"+$.md5($.md5(val+yan)));
+            if(val.length>5){
+                return true;
+            }
+            else{
+                return false;
+            }
+
+        }else if(key=="demo_date"){
+
+            console.log("demo_date:"+val);
+            if(val!=""){
+                return true;
+            }
+            else{
+                return false;
+            }
+
+        }
+    }
+
+    // Demo page code END
+    // -------------------------------------------------------------------
+});
+var pwFixer = new $.passwordBox();
+var init_password = function () {
+    var succ = pwFixer.getOldPasswords("selectPassword");
+    pwFixer.changePasswordVisiblity(0, "password");
+    $("#showPassword").show();
+//			$("#showPassword").find("img").fadeTo(100,0.4);
+};
+
+window.addEventListener("load", init_password, false);
+
+var pwState = false;
+
+function ShowHidePW() {
+
+    if (!pwState) {
+        pwFixer.changePasswordVisiblity(1, "password");
+        $("#showPassword").fadeTo(1000,0.4);
+        pwState = true;
+    } else {
+        pwFixer.changePasswordVisiblity(0, "password");
+        $("#showPassword").fadeTo(1000,0.4);
+        pwState = false;
+    }
+}
+function load_splashscreen2(what){
+
+    $.ui.toggleHeaderMenu();
+    $.ui.toggleNavMenu();
+}
+function load_tiaokuan_panel(what){
+    $.ui.toggleNavMenu();
+}
+
+</script>
+
+</head>
+
+<body>
+<div id="afui" class="myandroid" style="background:url('img/signIn-bg.png');filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod='scale');  -moz-background-size:100% 100%;background-size:100% 100%;">
+    <!-- this is the splashscreen you see.
+    <div id="splashscreen" class='ui-loader heavy' style="color:#333; background:#00AEEF; font-size:16px; display:block;">
+        仟手莲
+        <br>
+        <br>    <span class='ui-icon ui-icon-loading spin'></span>
+        <h1></h1>
+    </div>
+    -->
+    <div id="content" style="display:none; background:none;">
+
+        <div title="登录" id="splashscreen2" class="panel" data-load="load_splashscreen2" style=" background:none; text-align:center; font-size:16px; padding:0;" selected="true">
+            <br>
+            <br>    <span class='ui-icon ui-icon-loading spin'></span>
+            <h1></h1>
+            <div style="position:absolute; width:100%; text-align:center; bottom:20px;">
+
+                <table style="margin:0 auto;">
+                    <tr>
+                        <td><!--<img style="height:60px;" src="pic/newlogo.png" />--></td>
+                        <td style="font-family:'微软雅黑'; font-size:18px; font-weight:500; color:#000000;">蜜旅 · vipmilv.com</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div title="登录" id="login" class="panel" data-load="load_login_panel" style=" padding:0;">
+
+            <div class="card" style="height:260px; position:absolute; margin-top:30px; text-align:center; width:80%; margin-left: 10%; padding-left:5px; padding-right:5px;">
+                <div style="text-align:center; height:140px;">
+                    <img style="width:200px;margin-top:0px;" src="img/signIn-logo_03.png" />
+                </div>
+                <br>
+                <div class="input-group" style=" border:none; background:url('img/fff50.png');">
+
+                    <input type="text" id="name" placeholder="用户名" value="" style="border-bottom:1px solid #FFF;" />
+                    <input type="text" id="password" style="border-bottom:none; padding-right:30px;" placeholder="密码" value="" />
+
+                </div>
+
+                <a class='button' id="loginbutton" onClick="check_login();" style="width:100%; margin-top:5px; margin-bottom:0px; background:#e51b49; border:none; color:#EEEEEE; font-size:14px; font-weight:500; height:50px; line-height:30px;" >登&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;录</a><br />
+                <div style=" font-size:12px; color:#FFF; margin-top:10px; margin-bottom:20px;">
+                    <div style="float:left; width:50%; text-align:left;"><label style="font-size:12px; width:80%;">&nbsp;</label></div>
+                    <div style="float:left; width:50%; text-align:right; line-height:40px;">忘记密码</div>
+                </div>
+                <a href="#reg" class='button' id="regbutton" style="width:100%; /*background:#a3c31a;*/ background: none; border:none; color:#FFF; font-size:14px; font-weight:500; height:50px; line-height:30px;" data-transition="none">现在注册</a>
+
+                <br />
+
+                <p id="msg"></p>
+            </div>
+
+        </div>
+
+
+
+        <div title="注册" id="reg" class="panel" data-load="load_reg_panel" style="background:none;">
+            <header style="background:none;">
+                <a id="backButton" class="button" style="visibility: visible;">返回</a>
+                <h1></h1>
+            </header>
+            <div class="card" style="height:260px; width:80%; position:absolute; margin-top:-8px; text-align:center; left:10%; padding-left:5px; padding-right:5px;">
+                <div style="text-align:center; height:140px;">
+                    <img style="width:200px;" src="img/signIn-logo_03.png" />
+                </div>
+                <br>
+                <div class="input-group" style=" border:none; background:url('img/fff50.png');">
+
+                    <input type="tel" id="reg_tel" placeholder="请输入手机号" value="" style="border-bottom:1px solid #FFF;" />
+                    <input type="number" id="yzcode" placeholder="请输入验证码" value="" style="border-bottom:1px solid #FFF;" />
+                    <a class='button' onClick="get_yzcode(this);" style="margin-top:-39px; float:right; margin-bottom:0px; background:#e51b49;border:none; color:#EEEEEE; font-size:12px; font-weight:500; height:36px; width:120px; line-height:20px;" >获取验证码</a>
+                    <input type="password" id="reg_password" style="border-bottom:1px solid #FFF;padding-right:30px;" placeholder="请输入密码" value="" />
+                    <input type="password" id="reg_password2" style="border-bottom:none; padding-right:30px;" placeholder="请确认密码" value="" />
+                </div>
+                <p style="color: #e51b49; text-align: left; text-indent: 10px; line-height: 42px;"><span class="icon icon-checkbox-checked"></span><a href="#tiaokuan" style="text-decoration: underline;
+color: #e51b49;">注册服务条款</a></p>
+                <a class='button' onClick="check_reg();" style="width:100%; margin-top:5px; margin-bottom:0px; background:#e51b49;border:none; color:#EEEEEE; font-size:14px; font-weight:500; height:50px; line-height:30px;" >注&nbsp;&nbsp;&nbsp;&nbsp;册</a>
+                <br />
+                <p id="reg_msg"></p>
+
+            </div>
+        </div>
+
+        <div title="注册服务条款" id="tiaokuan" class="panel" data-load="load_tiaokuan_panel" style="background:none;">
+            <header style="background:none;">
+                <a id="backButton" class="button" style="visibility: visible;">返回</a>
+                <h1></h1>
+            </header>
+            <div id="tiaokuan_content" style=" width:90%; margin:5%; padding:10px; border-radius: 5px; padding-bottom: 20px; background: #FFF;">
+                <p style="text-indent: 26px;">“蜜旅”移动社交应用是北京市蜜旅科技有限公司拥有合法权属的一个真实的中高端单身交友应用软件。用户（以下也称“会员”）在使用蜜旅提供的各项服务之前，应仔细阅读本用户协议。</p>
+
+                <p style="text-indent: 26px;">如果您对本协议有任何的问题或建议，请联系我们的官方客服微信：<b>meaunty</b></p>
+
+                <p style="text-indent: 26px;">一旦您注册、使用或以其他方式访问我们的服务，那就意味着您已经接受本政策，并且在知情的基础上明确同意按本政策的规定处理、使用和披露您的个人信息。如果您不接受本政策，请不要注册、使用或以其他方式访问我们的服务。我们保留随时修改本政策的权利，并会在修改后于本页面公布修改后的文本。因此，请经常查看本页。如果您继续使用我们的服务，那就意味着您接受对本政策的修改。</p>
+                <h3>一、会员注册条件</h3>
+                <ul>
+                    <li>1) 申请注册成为蜜旅的会员应同时满足下列全部条件：在注册之日及此后使用蜜旅交友服务期间必须以恋爱交友或者婚姻为目的；在注册之日及此后使用蜜旅交友服务期间必须是单身状态，包括未婚、离异或是丧偶；在注册之日必须年满18周岁以上。</li>
+                    <li>2) 为更好的享有蜜旅提供的服务，会员应：向蜜旅提供本人真实、正确、最新及完整的资料；随时更新登记资料，保持其真实性及有效性；提供真实有效的联系人手机号码；征友过程中，务必保持征友帐号的唯一性。</li>
+                    <li>3) 若会员提供任何错误、不实或不完整的资料，或蜜旅有理由怀疑资料为错误、不实或不完整及违反会员注册条款的，或蜜旅有理由怀疑其会员资料、言行等有悖于“真实的中高端婚恋交友”主题的，蜜旅有权修改会员的注册昵称、独白等，或暂停甚至终止提供蜜旅提供的全部或部分服务。</li>
+                </ul>
+
+                <h3>二、服务说明</h3>
+                <ul>
+                    <li>1) 对于利用蜜旅服务进行非法活动，或其言行（无论线上或者线下的）背离蜜旅真实交友目的的，蜜旅将严肃处理，包括将其列入黑名单、按相关规定将其被投诉的情形予以公示、删除会员帐号等处罚措施。</li>
+                    <li>2) 为更好的享有蜜旅提供的服务，会员应：向蜜旅提供本人真实、正确、最新及完整的资料；随时更新登记资料，保持其真实性及有效性；提供真实有效的联系人手机号码；征友过程中，务必保持征友帐号的唯一性。</li>
+                    <li>3) 若会员提供任何错误、不实或不完整的资料，或蜜旅有理由怀疑资料为错误、不实或不完整及违反会员注册条款的，或蜜旅有理由怀疑其会员资料、言行等有悖于“真实的中高端婚恋交友”主题的，蜜旅有权修改会员的注册昵称、独白等，或暂停甚至终止提供蜜旅提供的全部或部分服务。</li>
+                </ul>
+
+                <h3>三、免责条款</h3>
+                <ul>
+                    <li>1) 蜜旅不保证其提供的服务一定能满足会员的要求和期望，也不保证服务不会中断，对服务的及时性、安全性、准确性都不作保证。</li>
+                    <li>2) 对于会员通过蜜旅提供的服务传送的内容，蜜旅会尽合理努力按照国家有关规定严格审查，但无法完全控制经由网站服务传送的内容，不保证内容100%的正确性、完整性或品质。因此会员在使用蜜旅服务时，可能会接触到令人不快、不适当或令人厌恶的内容。在任何情况下，蜜旅均不为会员经由网站服务以张贴、发送电子邮件或其它方式传送的任何内容负责。但蜜旅有权依法停止传输任何前述内容并采取相应行动，包括但不限于暂停会员使用网站服务的全部或部分，保存有关记录，并根据国家法律法规、相关政策在必要时向有关机关报告并配合有关机关的行动。</li>
+                    <li>3) 对于蜜旅站内提供的各种广告及产品信息、链接、资讯等，蜜旅会对广告内容进行初步审核，但是蜜旅难以确保对方产品真实性、合法性或可靠性，由于产品购买导致的相关责任主要由广告需求的商家承担；敬告会员理性看待，如需购买或者交易，请谨慎考虑。并且，对于会员经由蜜旅服务与广告商进行联系或商业往来，完全属于会员和广告商之间的行为，与蜜旅无关。对于前述商业往来所产生的任何损害或损失，蜜旅不承担任何责任。</li>
+                    <li>4) 对于用户上传的照片、资料、证件等，蜜旅已采用相关措施并已尽合理努力进行审核，但不保证其所有内容的正确性、合法性或可靠性，相关责任由上传上述内容的会员负责。</li>
+                    <li>5) 会员以自己的独立判断从事与交友相关的行为，并独立承担可能产生的不利后果和责任，蜜旅不承担任何法律责任。</li>
+                    <li>6) 蜜旅依据有关法律法规的规定或依据行政机关、司法机关、检察机关的要求，向其提供会员的基本信息或站内聊天信息，上述行为侵犯会员隐私权的，蜜旅不承担任何法律责任。</li>
+                    <li>7) 蜜旅作为交友平台，帮助会员寻找心仪伴侣是我们的服务内容。蜜旅推出的全部服务，全都是在用户同意并主动授权的情况下帮助授权用户寻找异性的功能服务。蜜旅不能保证会员通过此类服务授权由系统自动发出或接收到的信息完全满足会员交友需求。</li>
+                    <li>8) 蜜旅为了促进会员互动，产品上的组件应用或小功能都带有触发打招呼的功能。用户在使用此功能的组件的同时会给符合自己征友要求的异性发去问候招呼。蜜旅不能保证会员通过此类组件或小功能发出或接受到的信息完全满足会员的交友需求。</li>
+                    <li>9) 蜜旅内部所有为用户提供的礼品均为蜜旅联合其他公司共同提供。</li>
+                </ul>
+
+                <h3>四、会员应遵守以下法律法规：</h3>
+
+                <ul>
+                    <li>1) 蜜旅提醒会员在使用蜜旅服务时，遵守《中华人民共和国合同法》、《中华人民共和国著作权法》、《全国人民代表大会常务委员会关于维护互联网安全的决定》、《中华人民共和国保守国家秘密法》、《中华人民共和国电信条例》、《中华人民共和国计算机信息系统安全保护条例》、《中华人民共和国计算机信息网络国际联网管理暂行规定》及其实施办法、《计算机信息系统国际联网保密管理规定》、《互联网信息服务管理办法》、《计算机信息网络国际联网安全保护管理办法》、《互联网电子公告服务管理规定》等相关中国法律法规的规定。</li>
+                    <li>2) 在任何情况下，如果蜜旅有理由认为会员使用蜜旅服务过程中的任何行为，包括但不限于会员的任何言论和其它行为违反或可能违反上述法律和法规的任何规定，蜜旅可在任何时候不经任何事先通知终止向该会员提供服务。</li>
+                </ul>
+
+                <h3>五、禁止会员从事下列行为：</h3>
+
+                <ul>
+                    <li>1) 发布信息或者利用蜜旅的服务时在蜜旅的网页上或者利用蜜旅的服务制作、复制、发布、传播以下信息：反对宪法所确定的基本原则的；危害国家安全，泄露国家秘密，颠覆国家政权，破坏国家统一的；损害国家荣誉和利益的；煽动民族仇恨、民族歧视、破坏民族团结的；破坏国家宗教政策，宣扬邪教和封建迷信的；散布谣言，扰乱社会秩序，破坏社会稳定的；散布淫秽、色情、赌博、暴力、凶杀、恐怖或者教唆犯罪的；侮辱或者诽谤他人，侵害他人合法权利的；含有虚假、有害、胁迫、侵害他人隐私、骚扰、侵害、中伤、粗俗、猥亵、或其它有悖道德、令人反感的内容；含有中国法律、法规、规章、条例以及任何具有法律效力的规范所限制或禁止的其它内容的。</li>
+                    <li>2) 使用蜜旅服务的过程中，以任何方式危害未成年人的利益的。</li>
+                    <li>3) 冒充任何人或机构，包含但不限于冒充蜜旅工作人员、蜜姨、主持人，或以虚伪不实的方式陈述或谎称与任何人或机构有关的。</li>
+                    <li>4) 将侵犯任何人的肖像权、名誉权、隐私权、专利权、商标权、著作权、商业秘密或其它专属权利的内容上载、张贴、发送电子邮件或以其它方式传送的。</li>
+                    <li>5) 将病毒或其它计算机代码、档案和程序，加以上载、张贴、发送电子邮件或以其它方式传送的。</li>
+                    <li>6) 跟踪或以其它方式骚扰其他会员的。</li>
+                    <li>7) 未经合法授权而截获、篡改、收集、储存或删除他人个人信息、电子邮件或其它数据资料，或将获知的此类资料用于任何非法或不正当目的。</li>
+                    <li>8) 以任何方式干扰蜜旅服务的。</li>
+                </ul>
+
+                <h3>六、关于会员在蜜旅上传或张贴的内容</h3>
+                <ul>
+                    <li>1) 会员在蜜旅上传或张贴的内容（包括但不限于照片、文字、交友成功会员的成功故事等），视为会员授予蜜旅免费、非独家的使用权，蜜旅有权为展示、传播及推广前述张贴内容的目的，对上述内容进行复制、修改、出版等。该使用权持续至会员书面通知蜜旅不得继续使用，且蜜旅实际收到书面通知等行为时止。蜜旅合作伙伴使用或在现场活动中使用上述内容，蜜旅将事先征得会员的同意，但在蜜旅应用内使用不受此限。</li>
+                    <li>2) 因会员进行上述上传或张贴，而导致任何第三方提出侵权或索赔要求的，会员承担全部责任。</li>
+                    <li>3) 任何第三方对于会员在蜜旅的公开使用区域张贴的内容进行复制、修改、编辑、传播等行为的，该行为产生的法律后果和责任均由行为人承担，与蜜旅无关。</li>
+                </ul>
+
+                <h3>七、会员注册条款的变更和修改</h3>
+
+                <ul>
+                    <li>蜜旅有权随时对本注册条款进行变更和修改。一旦发生注册条款的变动，蜜旅可能在页面上提示修改的内容，或将最新版本的会员注册条款以邮件的形式发送给会员。会员如果不同意会员注册条款的修改，可以主动取消会员资格（如注销账号），如对部分服务支付了额外的费用，可以申请将尚未消费的费用全额或部分退回。如果会员继续使用会员帐号，则视为会员已经接受会员注册条款的修改。</li>
+                </ul>
+
+                <h3>八、蜜旅隐私权政策</h3>
+                <h3>您在访问蜜旅后台应用时提供的登记资料及蜜旅保留的有关您的若干其它资料，将受到中国有关隐私法律以及以下隐私条款的保护与约束。</h3>
+                <ul>
+                    <li>1）、收集的信息</li>
+                    <li>当你注册并使用蜜旅提供的会员服务时，蜜旅需要收集您的会员信息，所需要收集的内容都会在相关页面上明示，包括您的姓名、性别、地区、身高、手机号、邮箱、邮寄地址、身份证号。此项步骤有助于我们确认您会员身份的真实性和服务的有效性。</li>
+                    <li>
+                        <h5>2）、信息的保密</h5>
+                        <ul>
+                            <li>我们承诺通过程序上和硬件技术上的安全策略来保护您的个人信息，对传输信息进行加密保护；未经用户同意，我们承诺不会将用户信息透露给任何第三方，以下特殊情形除外：</li>
+                            <li>1、根据法律法规规定或有权机关指示提供用户的个人隐私信息</li>
+                            <li>2、用户自身原因将账户和密码告知他人或与他人共享注册账户与密码，由此导致的任何个人信息的泄漏，或其它非因蜜旅原因导致的个人隐私信息的泄漏</li>
+                            <li>3、用户自行向第三方公开其个人隐私信息</li>
+                            <li>4、任何由于黑客攻击、电脑病毒侵入及其他不可抗事件导致用户个人隐私信息的泄漏</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <h5>3）、收集信息的使用</h5>
+                        <ul>
+                            <li>蜜旅可在以下事项中使用用户个人隐私信息，除以下事项外，如未取得用户事先同意，蜜旅不会将用户个人隐私信息使用于任何其他用途：</li>
+                            <li>1、向用户发送重要通知时，如软件更新、本协议条款变更</li>
+                            <li>2、蜜旅进行内部审计、数据分析和研究以改进蜜旅产品体验、服务和与用户之间的沟通</li>
+                            <li>3、依本协议约定，蜜旅管理、审查用户信息及进行处理措施</li>
+                            <li>4、适用法律法规规定的其他事项</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h3>九、信息安全</h3>
+
+                <ul>
+                    <li> 我们按照行业通行标准合理保护信息的安全、完整和秘密。您个人信息的访问权限仅限于为根据本政策完成工作任务或进行技术维护工作需要处理您个人信息的人员。我们收集的个人信息保存于不向公众开放的安全运行环境之中。为避免未经授权访问您的个人信息，我们将其保存在有防火墙保护并可能加密的服务器之中。但是，没有什么系统是100%安全的。即使我们做出了合理努力，仍可能有人未经允许访问您的个人信息。此外，人们的言行可能不可靠，或具有误导性、非法性。我们无法告诉您别的用户说的是否属实。如果您使用我们的服务，您要自担以上数据失窃或被误导、被欺诈、被违法侵害的风险。</li>
+                    <li>如果您不接受本政策、提供我们要求提供的信息，那么您可能无法完全或部分使用我们的服务和我们提供的功能。但您需要了解，如果您提供了这些信息，您将承担这些信息被窃取、非法占有、滥用的风险。如果出现了上述情况，您的安全、财产和声誉可能受损。</li>
+                </ul>
+
+                <h3>十、关于版本更新</h3>
+
+                <ul>
+                    <li>北京市蜜旅科技有限公司对蜜旅及相关软件有唯一的升级修改权限，并有权终止一部分版本的使用。请及时升级最新版本。</li>
+                    <li>北京市蜜旅科技有限公司</li>
+                    <li>2015年9月24日</li>
+                </ul>
+
+            </div>
+        </div>
+
+    </div>
+
+    <style>
+        #tiaokuan_content{ line-height: 24px;}
+        #tiaokuan h3{ font-size: 14px;}
+        #tiaokuan ul{ font-size: 12px; padding-left: 20px;}
+        #tiaokuan ul li{ font-size: 12px; list-style: none;}
+    </style>
+    <!-- ------------------------------------------ -->
+    <!-- navbar -->
+
+</div>
+
+</body>
+
+</html>
